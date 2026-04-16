@@ -358,7 +358,7 @@ function S3() {
     { label:"SO₂ μg/m³",    v1:city1.so2,    v2:city2.so2,    unit:"μg/m³",  better:"lower" },
     { label:"CO mg/m³",     v1:city1.co,     v2:city2.co,     unit:"mg/m³",  better:"lower" },
     { label:"Station",      v1:city1.station,v2:city2.station, unit:"",       better:"none" },
-    { label:"Data from",    v1:city1.start,  v2:city2.start,  unit:"",       better:"none" },
+
     { label:"Type",         v1:city1.type,   v2:city2.type,   unit:"",       better:"none" },
   ];
 
@@ -543,7 +543,7 @@ function S6() {
             </div>
           ))}
           <div style={{ background:T.bg, border:`1px solid ${T.border}`, borderRadius:10, padding:"10px 14px", fontSize:11, color:T.secondary }}>
-            <b style={{ color:T.ink }}>Key finding:</b> All 5 cities in Gujarat. Cluster separation driven by industrial type, not geography — Gandhinagar is 30km from Ahmedabad yet in a different risk tier.
+            <b style={{ color:T.ink }}>Key finding:</b> All 4 cities in Gujarat. Cluster separation driven by industrial type, not geography — Gandhinagar is 30km from Ahmedabad yet in a different risk tier.
           </div>
         </div>
         <div style={{ ...cs }}>

@@ -18,21 +18,20 @@ const AQI = {
   unhealthy: { fg:"#C41E1E", bg:"#FEF1F1", border:"#F5A8A8" },
   verypoor:  { fg:"#7B2EA0", bg:"#F8F2FE", border:"#DDB8F5" },
 };
+// PM2.5-based risk theme (Indian NAAQS: annual standard 40 μg/m³, WHO: 15 μg/m³)
 const aqiTheme = v => {
   if (!v) return { fg:T.muted, bg:T.bg, border:T.border };
-  if (v > 200) return AQI.verypoor;
-  if (v > 150) return AQI.unhealthy;
-  if (v > 100) return AQI.poor;
-  if (v > 50)  return AQI.moderate;
+  if (v > 90)  return AQI.unhealthy;
+  if (v > 60)  return AQI.poor;
+  if (v > 30)  return AQI.moderate;
   return AQI.good;
 };
 const aqiLabel = v => {
   if (!v) return "No data";
-  if (v > 200) return "Very Poor";
-  if (v > 150) return "Unhealthy";
-  if (v > 100) return "Poor";
-  if (v > 50)  return "Moderate";
-  return "Good";
+  if (v > 90)  return "High Risk";
+  if (v > 60)  return "Medium-High";
+  if (v > 30)  return "Moderate";
+  return "Low Risk";
 };
 const CITY_COLORS = {
   Ahmedabad:"#E05C2A", Ankleshwar:"#9333EA",
@@ -208,20 +207,20 @@ function CT({ active, payload, label }) {
 function S1() {
   const [sort, setSort] = useState("aqi");
   const [hov,  setHov]  = useState(null);
-  const sorted = [...CITIES].sort((a,b) => sort==="name" ? a.city.localeCompare(b.city) : b[sort]-a[sort]);
+  const sorted = [...CITIES].sort((a,b) => sort==="name" ? a.city.localeCompare(b.city) : (b[sort]??0)-(a[sort]??0));
   return (
     <div>
-      <SlideHeader eyebrow="01 · Overview" title="City Baseline — Real CPCB Data" subtitle="Historical averages from actual station CSV files · GJ001, GJ002, GJ003, GJ005, GJ017" />
+      <SlideHeader eyebrow="01 · Overview" title="City Baseline — Real CPCB Data" subtitle="Historical averages from actual station CSV files · GJ001, GJ002, GJ003, GJ005" />
       <div style={{ display:"flex", gap:8, marginBottom:14, alignItems:"center" }}>
         <span style={{ fontSize:12, color:T.muted }}>Sort by:</span>
-        {[["aqi","AQI"],["pm25","PM2.5"],["pm10","PM10"],["name","A–Z"]].map(([k,l])=>(
+        {[["pm25","PM2.5"],["pm10","PM10"],["no2","NO₂"],["name","A–Z"]].map(([k,l])=>(
           <button key={k} onClick={()=>setSort(k)} style={{ background:sort===k?T.ink:T.surface, border:`1px solid ${sort===k?T.ink:T.border}`, borderRadius:7, color:sort===k?"#fff":T.secondary, padding:"5px 12px", fontSize:11, fontWeight:600, cursor:"pointer" }}>{l}</button>
         ))}
       </div>
       <div style={{ border:`1px solid ${T.border}`, borderRadius:12, overflow:"hidden", background:T.surface, marginBottom:14 }}>
         {sorted.map((c,i)=>{
-          const th=aqiTheme(c.aqi);
-          const pct=Math.min(c.aqi/400*100,100);
+          const th=aqiTheme(c.pm25);
+          const pct=Math.min(c.pm25/200*100,100);
           return (
             <div key={c.city} onMouseEnter={()=>setHov(c.city)} onMouseLeave={()=>setHov(null)}
               style={{ display:"flex", alignItems:"center", padding:"14px 24px", gap:18, background:hov===c.city?th.bg:T.surface, transition:"background 0.15s", borderBottom:i<sorted.length-1?`1px solid ${T.divider}`:"none" }}>
@@ -230,10 +229,10 @@ function S1() {
                 <div style={{ fontSize:10, color:T.muted }}>{c.type} · {c.station}</div>
               </div>
               <div style={{ width:60, textAlign:"center", flexShrink:0 }}>
-                <div style={{ fontSize:28, fontWeight:700, color:th.fg, letterSpacing:-1 }}>{c.aqi}</div>
-                <div style={{ fontSize:9, color:T.muted }}>AQI</div>
+                <div style={{ fontSize:28, fontWeight:700, color:th.fg, letterSpacing:-1 }}>{c.pm25}</div>
+                <div style={{ fontSize:9, color:T.muted }}>PM2.5 avg</div>
               </div>
-              <div style={{ width:88, flexShrink:0 }}><Tag color={th}>{aqiLabel(c.aqi)}</Tag></div>
+              <div style={{ width:88, flexShrink:0 }}><Tag color={th}>{aqiLabel(c.pm25)}</Tag></div>
               <div style={{ flex:1 }}>
                 <div style={{ height:4, background:T.divider, borderRadius:2, overflow:"hidden" }}>
                   <div style={{ width:`${pct}%`, height:"100%", background:th.fg, borderRadius:2 }} />
@@ -352,7 +351,7 @@ function S3() {
   }));
 
   const compareRows = [
-    { label:"Avg AQI",      v1:city1.aqi,    v2:city2.aqi,    unit:"",       better:"lower" },
+    { label:"PM2.5 avg",    v1:city1.pm25,   v2:city2.pm25,   unit:"μg/m³",  better:"lower" },
     { label:"PM2.5 μg/m³",  v1:city1.pm25,   v2:city2.pm25,   unit:"μg/m³",  better:"lower" },
     { label:"PM10 μg/m³",   v1:city1.pm10,   v2:city2.pm10,   unit:"μg/m³",  better:"lower" },
     { label:"NO₂ μg/m³",    v1:city1.no2,    v2:city2.no2,    unit:"μg/m³",  better:"lower" },
@@ -400,9 +399,9 @@ function S3() {
             );
           })}
           <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", marginTop:10 }}>
-            <div style={{ textAlign:"center" }}><Tag color={aqiTheme(city1.aqi)}>{aqiLabel(city1.aqi)}</Tag></div>
+            <div style={{ textAlign:"center" }}><Tag color={aqiTheme(city1.pm25)}>{aqiLabel(city1.pm25)}</Tag></div>
             <div />
-            <div style={{ textAlign:"center" }}><Tag color={aqiTheme(city2.aqi)}>{aqiLabel(city2.aqi)}</Tag></div>
+            <div style={{ textAlign:"center" }}><Tag color={aqiTheme(city2.pm25)}>{aqiLabel(city2.pm25)}</Tag></div>
           </div>
         </div>
 
@@ -428,7 +427,7 @@ function S3() {
 function S4() {
   const [active, setActive] = useState(null);
   const steps = [
-    { n:1, t:"Load CSVs",      s:"GJ001–GJ017\nHourly CPCB",       d:"17 Gujarat station CSV files from Kaggle. Total ~220,000 hourly rows. Two CPCB column formats: 'From Date' (hourly, most files) and 'Sampling Date' (daily)." },
+    { n:1, t:"Load CSVs",      s:"GJ001–GJ017\nHourly CPCB",       d:"454 total station files in dataset. We use 4 Gujarat files: GJ001 (Ahmedabad), GJ002 (Ankleshwar), GJ003 (Vapi), GJ005 (Gandhinagar). ~217,688 total hourly rows. Column format: 'From Date' / 'To Date' with pollutant columns." },
     { n:2, t:"Map Stations",   s:"stations_info.csv\nCity lookup",  d:"stations_info.csv maps each filename to city, station name, agency and start date. GJ001=Ahmedabad(Maninagar), GJ002=Ankleshwar(GIDC), GJ003=Vapi(Phase1GIDC), GJ005=Gandhinagar(Sector10)." },
     { n:3, t:"Fill Missing",   s:"Linear interp.\nSeasonal fallback",d:"Gaps ≤3 days filled by linear interpolation. Longer gaps use same-month average across available years. Total ~9,322 values imputed across 5 city files." },
     { n:4, t:"Remove Outliers",s:"IQR × 3.0\nRolling median",      d:"Values beyond 3× IQR capped using rolling median. Preserves real spikes (Diwali: Ahmedabad PM2.5 hit 393 μg/m³) while removing sensor faults." },
@@ -537,7 +536,7 @@ function S6() {
               <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:7 }}>
                 <div style={{ width:8, height:8, borderRadius:"50%", background:cl.th.fg }} />
                 <span style={{ fontSize:13, fontWeight:700, color:T.ink }}>{cl.risk}</span>
-                <span style={{ marginLeft:"auto", fontSize:11, color:T.secondary }}>{cl.aqi}</span>
+                
               </div>
               <div style={{ display:"flex", gap:5, marginBottom:7 }}>{cl.cities.map(c=><Tag key={c} color={cl.th}>{c}</Tag>)}</div>
               <p style={{ margin:0, fontSize:11, color:T.muted, lineHeight:1.55 }}>{cl.note}</p>
@@ -566,7 +565,7 @@ function S6() {
           <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:6, marginTop:12 }}>
             {bar.map(c=>(
               <div key={c.city} onMouseEnter={()=>setHov(c.city)} onMouseLeave={()=>setHov(null)}
-                style={{ textAlign:"center", padding:"7px 4px", borderRadius:8, background:hov===c.city?aqiTheme(c.aqi).bg:T.bg, transition:"background 0.15s", cursor:"default" }}>
+                style={{ textAlign:"center", padding:"7px 4px", borderRadius:8, background:hov===c.city?aqiTheme(c.pm25).bg:T.bg, transition:"background 0.15s", cursor:"default" }}>
                 <div style={{ fontSize:9, color:T.muted }}>{c.city}</div>
                 <div style={{ fontSize:13, fontWeight:700, color:CITY_COLORS[c.city] }}>{c.pm25}</div>
                 <div style={{ fontSize:9, color:T.muted }}>μg/m³</div>

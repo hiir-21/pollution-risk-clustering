@@ -54,14 +54,14 @@ const CITY_COLORS = {
   Vapi:       "#C41E1E",
 };
 
-// WAQI API
+// WAQI API — station-level slugs from aqicn.org
 const WAQI_TOKEN = "4532e9d25308516f482bc1858597498c7b89ee2c";
 const WAQI_CITIES = {
-  Ahmedabad:   "ahmedabad",
-  Gandhinagar: "gandhinagar",
-  Surat:       "surat",
-  Ankleshwar:  "ankleshwar",
-  Vapi:        "vapi",
+  Ahmedabad:   "india/gujarat/ahmedabad/bopal",
+  Gandhinagar: "india/gujarat/gandhinagar/sector-10",
+  Surat:       "india/gujarat/surat/udhna",
+  Ankleshwar:  "india/ankleshwar/gidc",
+  Vapi:        "india/vapi/phase-1-gidc",
 };
 
 // ── Historical averages (CPCB 2010–2023) ──────────────────────────────────
@@ -224,30 +224,39 @@ function S1() {
   const [sortBy,   setSortBy]   = useState("aqi");
   const [search,   setSearch]   = useState("");
 
+  const fetchOneCity = async (city, slug) => {
+    try {
+      const res  = await fetch(`https://api.waqi.info/feed/${encodeURIComponent(slug)}/?token=${WAQI_TOKEN}`);
+      const json = await res.json();
+      if (json.status !== "ok") return { city, aqi:null, pm25:null, pm10:null, error:true };
+      const d = json.data;
+      return {
+        city,
+        aqi:      typeof d.aqi === "number" ? d.aqi : null,
+        pm25:     d.iaqi?.pm25?.v ?? null,
+        pm10:     d.iaqi?.pm10?.v ?? null,
+        fetchedAt: new Date().toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" }) + " IST",
+        error: false,
+      };
+    } catch {
+      return { city, aqi:null, pm25:null, pm10:null, error:true };
+    }
+  };
+
   const fetchLive = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const results = await Promise.all(
-        Object.entries(WAQI_CITIES).map(async ([city, slug]) => {
-          const res  = await fetch(`https://api.waqi.info/feed/${slug}/?token=${WAQI_TOKEN}`);
-          const json = await res.json();
-          if (json.status !== "ok") throw new Error(`No data for ${city}`);
-          const d = json.data;
-          return {
-            city,
-            aqi:   d.aqi,
-            pm25:  d.iaqi?.pm25?.v ?? null,
-            pm10:  d.iaqi?.pm10?.v ?? null,
-            fetchedAt: new Date().toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" }) + " IST",
-          };
-        })
+        Object.entries(WAQI_CITIES).map(([city, slug]) => fetchOneCity(city, slug))
       );
+      const allFailed = results.every(r => r.error);
+      if (allFailed) throw new Error("all failed");
       const map = {};
       results.forEach(r => { map[r.city] = r; });
       setLiveData(map);
-    } catch(e) {
-      setError("Could not fetch live data. Check connection and try again.");
+    } catch {
+      setError("Could not fetch live data — WAQI API unreachable. Try refreshing or check aqicn.org.");
     } finally {
       setLoading(false);
     }

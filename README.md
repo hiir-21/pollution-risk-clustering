@@ -1,5 +1,5 @@
-# Pollution Risk Clustering — Gujarat Air Quality
-### CSE 520 · Data Analytics & Visualization · DAV 16
+# Pollution Risk Clustering - Gujarat Air Quality
+###  Data Analytics & Visualization 
 
 ---
 
